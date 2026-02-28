@@ -1,0 +1,409 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "© 2026 DockToggle" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "© 2026 DockToggle"
+          }
+        }
+      }
+    },
+    "About" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "О приложении"
+          }
+        }
+      }
+    },
+    "Accessibility" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Универсальный доступ"
+          }
+        }
+      }
+    },
+    "Accessibility Permission" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешение на Универсальный доступ"
+          }
+        }
+      }
+    },
+    "Add App…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить…"
+          }
+        }
+      }
+    },
+    "Back" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Назад"
+          }
+        }
+      }
+    },
+    "Brings Windows-like behavior to your Dock.\nClick an active app's icon to minimize it.\nClick again to restore." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавляет поведение как в Windows.\nКликните по иконке активного приложения в Dock, чтобы свернуть его.\nКликните ещё раз, чтобы восстановить."
+          }
+        }
+      }
+    },
+    "Continue" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Далее"
+          }
+        }
+      }
+    },
+    "DockToggle" : {
+
+    },
+    "DockToggle needs Accessibility access to detect\nDock clicks and control app windows.\n\nEverything stays on your Mac — no data is collected." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DockToggle необходим Универсальный доступ для перехвата\nкликов по Dock и управления окнами.\n\nВсё остаётся на вашем Mac — данные не собираются."
+          }
+        }
+      }
+    },
+    "DockToggle will run quietly in your menu bar.\nClick any active app in the Dock to minimize it." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DockToggle будет тихо работать в строке меню.\nКликните по активному приложению в Dock, чтобы свернуть его."
+          }
+        }
+      }
+    },
+    "DockToggle won't intercept clicks for these apps." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DockToggle не будет перехватывать клики для этих приложений."
+          }
+        }
+      }
+    },
+    "Enable DockToggle" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включить DockToggle"
+          }
+        }
+      }
+    },
+    "Enabled" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включено"
+          }
+        }
+      }
+    },
+    "Excluded Apps" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Исключения"
+          }
+        }
+      }
+    },
+    "General" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Основные"
+          }
+        }
+      }
+    },
+    "Get Started" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Начать"
+          }
+        }
+      }
+    },
+    "Grant Access" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предоставить доступ"
+          }
+        }
+      }
+    },
+    "Grant Accessibility Access" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предоставить доступ"
+          }
+        }
+      }
+    },
+    "Hide application" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть приложение"
+          }
+        }
+      }
+    },
+    "Launch at login" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запускать при входе"
+          }
+        }
+      }
+    },
+    "Look for this icon in the menu bar" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ищите эту иконку в строке меню"
+          }
+        }
+      }
+    },
+    "Minimize windows" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Свернуть окна"
+          }
+        }
+      }
+    },
+    "No apps found" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приложения не найдены"
+          }
+        }
+      }
+    },
+    "No excluded apps" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет исключений"
+          }
+        }
+      }
+    },
+    "Permission granted" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешение получено"
+          }
+        }
+      }
+    },
+    "Permission required" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Требуется разрешение"
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки"
+          }
+        }
+      }
+    },
+    "Settings…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки…"
+          }
+        }
+      }
+    },
+    "Quit" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выход"
+          }
+        }
+      }
+    },
+    "Refresh" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить"
+          }
+        }
+      }
+    },
+    "Refresh status" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить статус"
+          }
+        }
+      }
+    },
+    "Required to intercept Dock clicks" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Необходимо для перехвата кликов по Dock"
+          }
+        }
+      }
+    },
+    "Search apps…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск приложений…"
+          }
+        }
+      }
+    },
+    "Settings…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки…"
+          }
+        }
+      }
+    },
+    "Step %lld of %lld" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Шаг %lld из %lld"
+          }
+        }
+      }
+    },
+    "Toggle mode" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режим переключения"
+          }
+        }
+      }
+    },
+    "Version %@ (%@)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Версия %@ (%@)"
+          }
+        }
+      }
+    },
+    "Welcome to DockToggle" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добро пожаловать в DockToggle"
+          }
+        }
+      }
+    },
+    "Windows-like Dock toggle for macOS" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключение окон в Dock как в Windows"
+          }
+        }
+      }
+    },
+    "You're All Set!" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Всё готово!"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
