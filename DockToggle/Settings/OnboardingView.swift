@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct OnboardingView: View {
     var onComplete: () -> Void
@@ -6,6 +7,7 @@ struct OnboardingView: View {
     @State private var page = 0
     @State private var accessibilityGranted = AccessibilityHelper.checkAccessibility()
 
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     private let totalPages = 3
 
     var body: some View {
@@ -90,26 +92,19 @@ struct OnboardingView: View {
                     .foregroundStyle(.green)
                     .font(.body.weight(.medium))
             } else {
-                VStack(spacing: 10) {
-                    Button("Grant Accessibility Access") {
-                        AccessibilityHelper.requestAccessibility()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                            accessibilityGranted = AccessibilityHelper.checkAccessibility()
-                        }
-                    }
-                    .controlSize(.large)
-
-                    Button("Refresh status") {
-                        accessibilityGranted = AccessibilityHelper.checkAccessibility()
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
+                Button("Grant Accessibility Access") {
+                    AccessibilityHelper.requestAccessibility()
                 }
+                .controlSize(.large)
             }
             Spacer()
         }
         .padding(.horizontal, 48)
+        .onReceive(timer) { _ in
+            if !accessibilityGranted {
+                accessibilityGranted = AccessibilityHelper.checkAccessibility()
+            }
+        }
     }
 
     private var readyPage: some View {

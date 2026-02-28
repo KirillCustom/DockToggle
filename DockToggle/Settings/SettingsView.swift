@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 enum SettingsTab: String, CaseIterable, Identifiable {
     case general
@@ -63,6 +64,8 @@ struct GeneralSettingsView: View {
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @State private var accessibilityGranted = AccessibilityHelper.checkAccessibility()
 
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
     var body: some View {
         Form {
             Section {
@@ -94,21 +97,18 @@ struct GeneralSettingsView: View {
                     if !accessibilityGranted {
                         Button("Grant Access") {
                             AccessibilityHelper.requestAccessibility()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                                accessibilityGranted = AccessibilityHelper.checkAccessibility()
-                            }
                         }
-                    } else {
-                        Button("Refresh") {
-                            accessibilityGranted = AccessibilityHelper.checkAccessibility()
-                        }
-                        .buttonStyle(.borderless)
                     }
                 }
             }
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
+        .onReceive(timer) { _ in
+            if !accessibilityGranted {
+                accessibilityGranted = AccessibilityHelper.checkAccessibility()
+            }
+        }
     }
 }
 
