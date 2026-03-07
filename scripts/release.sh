@@ -14,6 +14,7 @@ BUILD_DIR="$PROJECT_DIR/build"
 ARCHIVE_PATH="$BUILD_DIR/$APP_NAME.xcarchive"
 APP_PATH="$BUILD_DIR/$APP_NAME.app"
 ZIP_PATH="$BUILD_DIR/$APP_NAME.zip"
+DMG_PATH="$BUILD_DIR/$APP_NAME.dmg"
 APPCAST_PATH="$PROJECT_DIR/appcast.xml"
 
 # Find Sparkle sign_update in DerivedData
@@ -59,7 +60,28 @@ ditto -c -k --keepParent "$APP_NAME.app" "$APP_NAME.zip"
 cd "$PROJECT_DIR"
 
 ZIP_SIZE=$(stat -f%z "$ZIP_PATH")
-echo "    Size: $ZIP_SIZE bytes"
+echo "    ZIP size: $ZIP_SIZE bytes"
+
+# Create DMG
+echo "==> Creating DMG..."
+create-dmg \
+    --volname "$APP_NAME" \
+    --window-pos 200 120 \
+    --window-size 600 400 \
+    --icon-size 100 \
+    --icon "$APP_NAME.app" 150 185 \
+    --app-drop-link 450 185 \
+    --no-internet-enable \
+    "$DMG_PATH" \
+    "$APP_PATH" \
+    2>/dev/null || true
+
+if [ -f "$DMG_PATH" ]; then
+    DMG_SIZE=$(stat -f%z "$DMG_PATH")
+    echo "    DMG size: $DMG_SIZE bytes"
+else
+    echo "    Warning: DMG creation failed, continuing with ZIP only"
+fi
 
 # Sign with Sparkle EdDSA
 echo "==> Signing with EdDSA..."
@@ -111,10 +133,17 @@ echo "==> Done!"
 echo ""
 echo "Next steps:"
 echo "  1. Commit updated appcast.xml and push to main"
-echo "  2. Create GitHub release v$VERSION and upload:"
+echo "  2. Create GitHub release v$VERSION and upload artifacts:"
 echo "     $ZIP_PATH"
+if [ -f "$DMG_PATH" ]; then
+echo "     $DMG_PATH"
+fi
 echo ""
 echo "Quick commands:"
 echo "  git add appcast.xml && git commit -m \"Update appcast for v$VERSION\""
 echo "  git push"
+if [ -f "$DMG_PATH" ]; then
+echo "  gh release create v$VERSION \"$ZIP_PATH\" \"$DMG_PATH\" --title \"v$VERSION\" --notes \"Release v$VERSION\""
+else
 echo "  gh release create v$VERSION \"$ZIP_PATH\" --title \"v$VERSION\" --notes \"Release v$VERSION\""
+fi
