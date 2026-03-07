@@ -83,8 +83,10 @@ struct PreferencesTests {
     @Test("toggleMode handles invalid raw value gracefully")
     func toggleModeInvalidRaw() {
         UserDefaults.standard.set("invalid_mode", forKey: "toggleMode")
-
         #expect(prefs.toggleMode == .minimize)
+
+        // Restore valid value so it doesn't leak into app when running in Debug
+        prefs.toggleMode = .minimize
     }
 
     // MARK: - isEnabled
@@ -103,14 +105,15 @@ struct PreferencesTests {
 
 @Suite("ToggleMode")
 struct ToggleModeTests {
-    @Test("all cases are minimize and hide")
+    @Test("all cases are minimize, minimizeActive, and hide")
     func allCases() {
-        #expect(ToggleMode.allCases == [.minimize, .hide])
+        #expect(ToggleMode.allCases == [.minimize, .minimizeActive, .hide])
     }
 
     @Test("rawValue matches case name")
     func rawValues() {
         #expect(ToggleMode.minimize.rawValue == "minimize")
+        #expect(ToggleMode.minimizeActive.rawValue == "minimizeActive")
         #expect(ToggleMode.hide.rawValue == "hide")
     }
 
@@ -124,6 +127,7 @@ struct ToggleModeTests {
     @Test("label returns human-readable string")
     func labels() {
         #expect(ToggleMode.minimize.label == "Minimize")
+        #expect(ToggleMode.minimizeActive.label == "Minimize Active Window")
         #expect(ToggleMode.hide.label == "Hide")
     }
 }

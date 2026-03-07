@@ -1,13 +1,19 @@
 import SwiftUI
 import Cocoa
+import Sparkle
 
 @main
 struct DockToggleApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @AppStorage("isEnabled") private var isEnabled = true
+    @AppStorage("accessibilityGranted") private var accessibilityGranted = false
+
+    private var isActive: Bool {
+        isEnabled && accessibilityGranted
+    }
 
     var body: some Scene {
-        MenuBarExtra("DockToggle", image: isEnabled ? "MenuBarIcon" : "MenuBarIconDisabled") {
+        MenuBarExtra("DockToggle", image: isActive ? "MenuBarIcon" : "MenuBarIconDisabled") {
             MenuBarMenu(appDelegate: appDelegate)
         }
     }
@@ -16,8 +22,15 @@ struct DockToggleApp: App {
 struct MenuBarMenu: View {
     let appDelegate: AppDelegate
     @AppStorage("isEnabled") private var isEnabled = true
+    @AppStorage("accessibilityGranted") private var accessibilityGranted = false
 
     var body: some View {
+        if !accessibilityGranted {
+            Button("Grant Accessibility Access") {
+                AccessibilityHelper.requestAccessibility()
+            }
+            Divider()
+        }
         Toggle("Enabled", isOn: $isEnabled)
             .onChange(of: isEnabled) { _, newValue in
                 if newValue {
@@ -30,6 +43,9 @@ struct MenuBarMenu: View {
         Button("Settings…") {
             appDelegate.openSettings()
         }
+        Button("Check for Updates…") {
+            appDelegate.updaterController.checkForUpdates(nil)
+        }
         Divider()
         Button("Quit") {
             NSApplication.shared.terminate(nil)
@@ -41,12 +57,21 @@ struct MenuBarMenu: View {
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, EventTapDelegate {
     private let dockWatcher = DockWatcher.shared
     private let eventTapManager = EventTapManager()
+    let updaterController: SPUStandardUpdaterController
     private var settingsWindow: NSWindow?
     private var onboardingWindow: NSWindow?
+    private var accessibilityTimer: Timer?
+
+    override init() {
+        updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+        super.init()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApplication.shared.setActivationPolicy(.accessory)
         eventTapManager.delegate = self
+        updateAccessibilityStatus()
+        startAccessibilityMonitor()
 
         let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
 
@@ -54,12 +79,53 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
             showOnboarding()
         } else {
             if !AccessibilityHelper.checkAccessibility() {
-                AccessibilityHelper.requestAccessibility()
+                showAccessibilityLostAlert()
             }
             if Preferences.shared.isEnabled {
                 startToggling()
             }
         }
+    }
+
+    private func updateAccessibilityStatus() {
+        UserDefaults.standard.set(AccessibilityHelper.checkAccessibility(), forKey: "accessibilityGranted")
+    }
+
+    private func startAccessibilityMonitor() {
+        accessibilityTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            self?.updateAccessibilityStatus()
+        }
+    }
+
+    private func showAccessibilityLostAlert() {
+        let alert = NSAlert()
+        alert.messageText = NSLocalizedString("Accessibility Permission Required", comment: "")
+        alert.informativeText = NSLocalizedString("DockToggle needs Accessibility access to work. After an update, macOS may require you to re-grant this permission.\n\nPlease remove the old DockToggle entry from System Settings → Privacy & Security → Accessibility, then add the new one.", comment: "")
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: NSLocalizedString("Open Settings", comment: ""))
+        alert.addButton(withTitle: NSLocalizedString("Later", comment: ""))
+
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+
+        if alert.runModal() == .alertFirstButtonReturn {
+            AccessibilityHelper.openAccessibilitySettings()
+        }
+
+        NSApp.setActivationPolicy(.accessory)
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // If settings or onboarding window is open, just close it instead of quitting
+        if let window = settingsWindow, window.isVisible {
+            window.close()
+            return .terminateCancel
+        }
+        if let window = onboardingWindow, window.isVisible {
+            window.close()
+            return .terminateCancel
+        }
+        return .terminateNow
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -114,7 +180,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
             return
         }
 
-        let hostingController = NSHostingController(rootView: SettingsView())
+        let hostingController = NSHostingController(rootView: SettingsView(updater: updaterController.updater))
         let window = NSWindow(contentViewController: hostingController)
         window.title = NSLocalizedString("Settings", comment: "")
         window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]

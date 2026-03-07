@@ -1,6 +1,46 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Accessibility Permission Required" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Требуется доступ к Универсальному доступу"
+          }
+        }
+      }
+    },
+    "DockToggle needs Accessibility access to work. After an update, macOS may require you to re-grant this permission.\n\nPlease remove the old DockToggle entry from System Settings → Privacy & Security → Accessibility, then add the new one." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DockToggle необходим доступ к Универсальному доступу.\nПосле обновления macOS может потребовать повторное разрешение.\n\nУдалите старую запись DockToggle из Системных настроек → Конфиденциальность → Универсальный доступ, затем добавьте новую."
+          }
+        }
+      }
+    },
+    "Later" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позже"
+          }
+        }
+      }
+    },
+    "Open Settings" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть настройки"
+          }
+        }
+      }
+    },
     "© 2026 DockToggle" : {
       "localizations" : {
         "ru" : {
@@ -51,6 +91,16 @@
         }
       }
     },
+    "Automatically check for updates" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автоматически проверять обновления"
+          }
+        }
+      }
+    },
     "Back" : {
       "localizations" : {
         "ru" : {
@@ -67,6 +117,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Добавляет поведение как в Windows.\nКликните по иконке активного приложения в Dock, чтобы свернуть его.\nКликните ещё раз, чтобы восстановить."
+          }
+        }
+      }
+    },
+    "Check for Updates…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверить обновления…"
           }
         }
       }
@@ -214,6 +274,16 @@
         }
       }
     },
+    "Minimize active window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Свернуть активное окно"
+          }
+        }
+      }
+    },
     "Minimize windows" : {
       "localizations" : {
         "ru" : {
@@ -264,26 +334,6 @@
         }
       }
     },
-    "Settings" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Настройки"
-          }
-        }
-      }
-    },
-    "Settings…" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Настройки…"
-          }
-        }
-      }
-    },
     "Quit" : {
       "localizations" : {
         "ru" : {
@@ -295,6 +345,7 @@
       }
     },
     "Refresh" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ru" : {
           "stringUnit" : {
@@ -305,6 +356,7 @@
       }
     },
     "Refresh status" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ru" : {
           "stringUnit" : {
@@ -330,6 +382,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Поиск приложений…"
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки"
           }
         }
       }

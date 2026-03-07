@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import Sparkle
 
 enum SettingsTab: String, CaseIterable, Identifiable {
     case general
@@ -27,6 +28,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 
 struct SettingsView: View {
     @State private var selectedTab: SettingsTab = .general
+    var updater: SPUUpdater? = nil
 
     var body: some View {
         NavigationSplitView {
@@ -44,11 +46,11 @@ struct SettingsView: View {
             Group {
                 switch selectedTab {
                 case .general:
-                    GeneralSettingsView()
+                    GeneralSettingsView(updater: updater)
                 case .apps:
                     AppsSettingsView()
                 case .about:
-                    AboutSettingsView()
+                    AboutSettingsView(updater: updater)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -59,9 +61,11 @@ struct SettingsView: View {
 // MARK: - General
 
 struct GeneralSettingsView: View {
+    var updater: SPUUpdater? = nil
     @AppStorage("isEnabled") private var isEnabled = true
     @AppStorage("toggleMode") private var toggleMode = ToggleMode.minimize.rawValue
     @AppStorage("launchAtLogin") private var launchAtLogin = false
+    @State private var automaticallyChecks = true
     @State private var accessibilityGranted = AccessibilityHelper.checkAccessibility()
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -72,12 +76,20 @@ struct GeneralSettingsView: View {
                 Toggle("Enable DockToggle", isOn: $isEnabled)
                 Picker("Toggle mode", selection: $toggleMode) {
                     Text("Minimize windows").tag(ToggleMode.minimize.rawValue)
+                    Text("Minimize active window").tag(ToggleMode.minimizeActive.rawValue)
                     Text("Hide application").tag(ToggleMode.hide.rawValue)
                 }
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, newValue in
                         Preferences.shared.updateLoginItem(newValue)
                     }
+                if let updater {
+                    Toggle("Automatically check for updates", isOn: $automaticallyChecks)
+                        .onAppear { automaticallyChecks = updater.automaticallyChecksForUpdates }
+                        .onChange(of: automaticallyChecks) { _, newValue in
+                            updater.automaticallyChecksForUpdates = newValue
+                        }
+                }
             }
 
             Section("Accessibility") {
@@ -288,6 +300,7 @@ struct RunningAppsPicker: View {
 // MARK: - About
 
 struct AboutSettingsView: View {
+    var updater: SPUUpdater? = nil
     private let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     private let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
 
@@ -306,6 +319,12 @@ struct AboutSettingsView: View {
             Text("Windows-like Dock toggle for macOS")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+            if let updater {
+                Button("Check for Updates…") {
+                    updater.checkForUpdates()
+                }
+                .buttonStyle(.link)
+            }
             Spacer()
             Text("\u{00A9} 2026 DockToggle")
                 .font(.caption)

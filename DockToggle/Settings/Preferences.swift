@@ -3,6 +3,7 @@ import ServiceManagement
 
 nonisolated enum ToggleMode: String, CaseIterable, Identifiable, Sendable {
     case minimize
+    case minimizeActive
     case hide
 
     var id: String { rawValue }
@@ -10,6 +11,7 @@ nonisolated enum ToggleMode: String, CaseIterable, Identifiable, Sendable {
     var label: String {
         switch self {
         case .minimize: return "Minimize"
+        case .minimizeActive: return "Minimize Active Window"
         case .hide: return "Hide"
         }
     }

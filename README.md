@@ -11,13 +11,15 @@
 
 ## Features
 
-- **Dock click toggle** — clicking an active app's Dock icon minimizes (or hides) all its windows; clicking again restores them
-- **Two toggle modes** — "Minimize windows" (per-window) or "Hide application" (whole-app)
+- **Dock click toggle** — clicking an active app's Dock icon minimizes (or hides) its windows; clicking again restores them
+- **Three toggle modes** — "Minimize windows" (all), "Minimize active window" (focused only), or "Hide application" (whole-app)
 - **Auto-restore** — clicking an inactive app with minimized windows automatically restores them
+- **Auto-update** — built-in update checks via Sparkle
 - **Excluded apps** — per-app opt-out with a searchable picker
 - **Fullscreen safety** — never intercepts clicks on fullscreen apps
 - **Launch at login** — native macOS login item support
 - **Menu bar only** — runs entirely in the menu bar with no Dock icon
+- **Accessibility status** — menu bar icon reflects whether permissions are granted
 - **Localized** — English and Russian
 
 ## Requirements
@@ -34,7 +36,7 @@
 
 DockToggle lives in your menu bar. Once enabled:
 
-- **Click** an active app's Dock icon → all its windows minimize
+- **Click** an active app's Dock icon → its windows minimize (all or just the focused one, depending on mode)
 - **Click** it again → windows restore
 - **Click** an inactive app with minimized windows → windows restore and the app activates
 
@@ -43,7 +45,7 @@ DockToggle lives in your menu bar. Once enabled:
 Open Settings from the menu bar icon to configure:
 
 - **Enable / Disable** — master toggle (also available directly from the menu bar)
-- **Toggle Mode** — choose between minimizing windows or hiding the entire application
+- **Toggle Mode** — minimize all windows, minimize active window only, or hide the entire application
 - **Launch at Login** — start DockToggle automatically when you log in
 - **Excluded Apps** — select apps that should keep default Dock behavior
 
@@ -58,7 +60,7 @@ On first launch, the onboarding wizard will prompt you to grant access. You can 
 
 **System Settings → Privacy & Security → Accessibility → DockToggle**
 
-No other permissions are required. DockToggle does not access the network, files, camera, or microphone.
+No other permissions are required. DockToggle only accesses the network to check for updates.
 
 ## Building from Source
 
@@ -66,7 +68,7 @@ No other permissions are required. DockToggle does not access the network, files
 2. Open `DockToggle.xcodeproj` in Xcode 16+
 3. Build and run (⌘R)
 
-The project uses SwiftUI and AppKit with no external dependencies.
+The project uses SwiftUI and AppKit with [Sparkle](https://sparkle-project.org) for auto-updates (via SPM).
 
 ## License
 

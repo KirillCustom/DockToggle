@@ -12,6 +12,8 @@ nonisolated enum WindowToggler {
         switch mode {
         case .minimize:
             toggleMinimize(app: app)
+        case .minimizeActive:
+            toggleMinimizeActive(app: app)
         case .hide:
             toggleHide(app: app)
         }
@@ -42,6 +44,31 @@ nonisolated enum WindowToggler {
                 let result = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, true as CFTypeRef)
                 print("[WindowToggler]   minimize result: \(result.rawValue)")
             }
+        }
+    }
+
+    private static func toggleMinimizeActive(app: NSRunningApplication) {
+        let appElement = AXUIElementCreateApplication(app.processIdentifier)
+
+        var focusedRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(appElement, kAXFocusedWindowAttribute as CFString, &focusedRef) == .success,
+              let focusedWindow = focusedRef else {
+            print("[WindowToggler] No focused window, restoring minimized")
+            let windows = getWindows(appElement)
+            restoreLastMinimized(windows: windows, app: app)
+            return
+        }
+
+        let window = focusedWindow as! AXUIElement
+
+        if !isMinimized(window) && isStandardWindow(window) {
+            print("[WindowToggler] Minimizing focused window")
+            let result = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, true as CFTypeRef)
+            print("[WindowToggler]   minimize result: \(result.rawValue)")
+        } else {
+            print("[WindowToggler] Focused window already minimized or non-standard, restoring")
+            let windows = getWindows(appElement)
+            restoreLastMinimized(windows: windows, app: app)
         }
     }
 

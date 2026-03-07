@@ -10,6 +10,7 @@ final class EventTapManager {
 
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
+    private var retryTimer: Timer?
 
     func start() {
         guard eventTap == nil else { return }
@@ -30,10 +31,12 @@ final class EventTapManager {
             },
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            print("[EventTapManager] Failed to create event tap. Check accessibility permissions.")
+            print("[EventTapManager] Failed to create event tap. Will retry when permissions are granted.")
+            startRetrying()
             return
         }
 
+        stopRetrying()
         eventTap = tap
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
@@ -42,6 +45,7 @@ final class EventTapManager {
     }
 
     func stop() {
+        stopRetrying()
         if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
         }
@@ -51,6 +55,22 @@ final class EventTapManager {
         eventTap = nil
         runLoopSource = nil
         print("[EventTapManager] Event tap stopped")
+    }
+
+    private func startRetrying() {
+        guard retryTimer == nil else { return }
+        retryTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            guard let self, self.eventTap == nil else { return }
+            if AccessibilityHelper.checkAccessibility() {
+                print("[EventTapManager] Accessibility granted, retrying...")
+                self.start()
+            }
+        }
+    }
+
+    private func stopRetrying() {
+        retryTimer?.invalidate()
+        retryTimer = nil
     }
 
     var isRunning: Bool {
