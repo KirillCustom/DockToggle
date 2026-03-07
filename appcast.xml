@@ -5,5 +5,18 @@
     <link>https://github.com/KirillCustom/DockToggle</link>
     <description>DockToggle update feed</description>
     <language>en</language>
+    <item>
+      <title>Version 1.0.2</title>
+      <pubDate>Sat, 07 Mar 2026 18:38:33 +0300</pubDate>
+      <sparkle:version>3</sparkle:version>
+      <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+      <enclosure
+        url="https://github.com/KirillCustom/DockToggle/releases/download/v1.0.2/DockToggle.zip"
+        length="1446457"
+        type="application/octet-stream"
+        sparkle:edSignature="MoTrkZ+eadsKuSJMdJY6fGck8KL+HN0HPD6PVGKELb0ZZC/LDmijio11VwIZFm5AFQus5pgij2ydVTqecFs8DQ=="
+      />
+    </item>
   </channel>
 </rss>
