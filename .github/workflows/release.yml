@@ -83,24 +83,12 @@ jobs:
         env:
           SPARKLE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
-          echo "==> Sparkle contents:"
-          ls -la /tmp/sparkle/bin/ || ls -la /tmp/sparkle/
-          SIGN_UPDATE=$(find /tmp/sparkle -name "sign_update" -type f | head -1)
-          echo "==> sign_update path: $SIGN_UPDATE"
-          chmod +x "$SIGN_UPDATE"
-          echo "==> Signing ZIP..."
-          set +e
-          OUTPUT=$("$SIGN_UPDATE" build/DockToggle.zip -s "$SPARKLE_KEY" 2>&1)
-          EXIT_CODE=$?
-          set -e
-          echo "==> sign_update exit code: $EXIT_CODE"
-          echo "$OUTPUT" | grep -v "^$" | head -20
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "::error::sign_update failed"
-            exit 1
-          fi
+          echo "$SPARKLE_KEY" > /tmp/sparkle_key
+          SIGN_UPDATE="/tmp/sparkle/bin/sign_update"
+          OUTPUT=$("$SIGN_UPDATE" build/DockToggle.zip --ed-key-file /tmp/sparkle_key 2>&1)
+          rm -f /tmp/sparkle_key
+          echo "$OUTPUT"
           SIGNATURE=$(echo "$OUTPUT" | grep 'sparkle:edSignature=' | sed 's/.*sparkle:edSignature="//;s/".*//')
-          echo "==> Signature: ${SIGNATURE:0:20}..."
           echo "signature=$SIGNATURE" >> "$GITHUB_OUTPUT"
           ZIP_SIZE=$(stat -f%z build/DockToggle.zip)
           echo "zip_size=$ZIP_SIZE" >> "$GITHUB_OUTPUT"
