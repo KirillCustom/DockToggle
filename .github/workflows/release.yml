@@ -72,12 +72,19 @@ jobs:
             build/DockToggle.app \
             2>/dev/null || true
 
+      - name: Download Sparkle sign_update
+        run: |
+          curl -sL https://github.com/sparkle-project/Sparkle/releases/download/2.9.0/Sparkle-2.9.0.tar.xz -o /tmp/sparkle.tar.xz
+          mkdir -p /tmp/sparkle
+          tar -xf /tmp/sparkle.tar.xz -C /tmp/sparkle
+
       - name: Sign with Sparkle EdDSA
         id: sparkle
         env:
           SPARKLE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
-          SIGN_UPDATE=$(find .spm/artifacts -name "sign_update" -not -path "*/old_dsa_scripts/*" -type f | head -1)
+          SIGN_UPDATE="/tmp/sparkle/bin/sign_update"
+          chmod +x "$SIGN_UPDATE"
           OUTPUT=$("$SIGN_UPDATE" build/DockToggle.zip -s "$SPARKLE_KEY" 2>&1)
           SIGNATURE=$(echo "$OUTPUT" | grep 'sparkle:edSignature=' | sed 's/.*sparkle:edSignature="//;s/".*//')
           echo "signature=$SIGNATURE" >> "$GITHUB_OUTPUT"
