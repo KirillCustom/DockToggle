@@ -1,0 +1,146 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Generate changelog
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            git log "$PREV_TAG"..HEAD --pretty=format:"- %s" --no-merges > /tmp/changelog.md
+          else
+            git log --pretty=format:"- %s" --no-merges > /tmp/changelog.md
+          fi
+
+      - name: Resolve Xcode SPM dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -scheme DockToggle \
+            -clonedSourcePackagesDirPath .spm
+
+      - name: Build archive
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          xcodebuild archive \
+            -scheme DockToggle \
+            -destination 'generic/platform=macOS' \
+            -archivePath build/DockToggle.xcarchive \
+            -clonedSourcePackagesDirPath .spm \
+            MARKETING_VERSION="$VERSION" \
+            -quiet
+
+      - name: Export app
+        run: cp -R build/DockToggle.xcarchive/Products/Applications/DockToggle.app build/DockToggle.app
+
+      - name: Create ZIP
+        run: |
+          cd build
+          ditto -c -k --keepParent DockToggle.app DockToggle.zip
+
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+          create-dmg \
+            --volname "DockToggle" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "DockToggle.app" 150 185 \
+            --app-drop-link 450 185 \
+            --no-internet-enable \
+            build/DockToggle.dmg \
+            build/DockToggle.app \
+            2>/dev/null || true
+
+      - name: Sign with Sparkle EdDSA
+        id: sparkle
+        env:
+          SPARKLE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          SIGN_UPDATE=$(find .spm/artifacts -name "sign_update" -not -path "*/old_dsa_scripts/*" -type f | head -1)
+          OUTPUT=$("$SIGN_UPDATE" build/DockToggle.zip -s "$SPARKLE_KEY" 2>&1)
+          SIGNATURE=$(echo "$OUTPUT" | grep 'sparkle:edSignature=' | sed 's/.*sparkle:edSignature="//;s/".*//')
+          echo "signature=$SIGNATURE" >> "$GITHUB_OUTPUT"
+          ZIP_SIZE=$(stat -f%z build/DockToggle.zip)
+          echo "zip_size=$ZIP_SIZE" >> "$GITHUB_OUTPUT"
+
+      - name: Update appcast.xml
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SIGNATURE: ${{ steps.sparkle.outputs.signature }}
+          ZIP_SIZE: ${{ steps.sparkle.outputs.zip_size }}
+          REPO: ${{ github.repository }}
+        run: |
+          BUILD=$(grep 'CURRENT_PROJECT_VERSION' DockToggle.xcodeproj/project.pbxproj | head -1 | sed 's/.*= //;s/;.*//')
+          PUB_DATE=$(date -R)
+          DOWNLOAD_URL="https://github.com/${REPO}/releases/download/v${VERSION}/DockToggle.zip"
+
+          cat > appcast.xml << EOF
+          <?xml version="1.0" standalone="yes"?>
+          <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
+            <channel>
+              <title>DockToggle</title>
+              <link>https://github.com/${REPO}</link>
+              <description>DockToggle update feed</description>
+              <language>en</language>
+              <item>
+                <title>Version ${VERSION}</title>
+                <pubDate>${PUB_DATE}</pubDate>
+                <sparkle:version>${BUILD}</sparkle:version>
+                <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+                <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+                <enclosure
+                  url="${DOWNLOAD_URL}"
+                  length="${ZIP_SIZE}"
+                  type="application/octet-stream"
+                  sparkle:edSignature="${SIGNATURE}"
+                />
+              </item>
+            </channel>
+          </rss>
+          EOF
+
+      - name: Commit appcast.xml
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          git add appcast.xml
+          git diff --cached --quiet || git commit -m "Update appcast for v${TAG}"
+          git push
+        env:
+          TAG: ${{ steps.version.outputs.version }}
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          ASSETS="build/DockToggle.zip"
+          if [ -f build/DockToggle.dmg ]; then
+            ASSETS="$ASSETS build/DockToggle.dmg"
+          fi
+          gh release create "v${VERSION}" \
+            $ASSETS \
+            --title "v${VERSION}" \
+            --notes-file /tmp/changelog.md
