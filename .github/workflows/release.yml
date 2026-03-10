@@ -83,10 +83,13 @@ jobs:
         env:
           SPARKLE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
-          echo "$SPARKLE_KEY" > /tmp/sparkle_key
+          KEY_FILE=$(mktemp)
+          chmod 600 "$KEY_FILE"
+          trap 'rm -f "$KEY_FILE"' EXIT
+          echo "$SPARKLE_KEY" > "$KEY_FILE"
           SIGN_UPDATE="/tmp/sparkle/bin/sign_update"
-          OUTPUT=$("$SIGN_UPDATE" build/DockToggle.zip --ed-key-file /tmp/sparkle_key 2>&1)
-          rm -f /tmp/sparkle_key
+          OUTPUT=$("$SIGN_UPDATE" build/DockToggle.zip --ed-key-file "$KEY_FILE" 2>&1)
+          rm -f "$KEY_FILE"
           echo "$OUTPUT"
           SIGNATURE=$(echo "$OUTPUT" | grep 'sparkle:edSignature=' | sed 's/.*sparkle:edSignature="//;s/".*//')
           echo "signature=$SIGNATURE" >> "$GITHUB_OUTPUT"

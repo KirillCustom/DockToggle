@@ -73,8 +73,7 @@ nonisolated enum WindowToggler {
             return
         }
 
-        // CFTypeRef from AXUIElementCopyAttributeValue is already an AXUIElement
-        let window = focusedWindow as CFTypeRef as! AXUIElement
+        let window = focusedWindow as CFTypeRef as! AXUIElement // safe: AX always returns AXUIElement for kAXFocusedWindowAttribute
 
         if !isMinimized(window) && isStandardWindow(window) {
             #if DEBUG

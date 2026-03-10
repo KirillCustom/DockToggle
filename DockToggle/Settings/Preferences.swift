@@ -63,7 +63,9 @@ nonisolated final class Preferences: Sendable {
                 try SMAppService.mainApp.unregister()
             }
         } catch {
+            #if DEBUG
             print("Login item error: \(error)")
+            #endif
         }
     }
 }

@@ -106,7 +106,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
         alert.addButton(withTitle: NSLocalizedString("Later", comment: ""))
 
         NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
+        if #available(macOS 14.0, *) {
+            NSApp.activate()
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+        }
 
         if alert.runModal() == .alertFirstButtonReturn {
             AccessibilityHelper.openAccessibilitySettings()
@@ -167,7 +171,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
         window.setContentSize(NSSize(width: 500, height: 420))
         window.center()
         window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        if #available(macOS 14.0, *) {
+            NSApp.activate()
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+        }
         onboardingWindow = window
     }
 
@@ -176,7 +184,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
 
         if let window = settingsWindow {
             window.makeKeyAndOrderFront(nil)
+            if #available(macOS 14.0, *) {
+            NSApp.activate()
+        } else {
             NSApp.activate(ignoringOtherApps: true)
+        }
             return
         }
 
@@ -192,7 +204,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
         window.setContentSize(NSSize(width: 620, height: 420))
         window.center()
         window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        if #available(macOS 14.0, *) {
+            NSApp.activate()
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+        }
         settingsWindow = window
     }
 

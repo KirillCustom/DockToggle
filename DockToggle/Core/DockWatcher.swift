@@ -13,17 +13,22 @@ struct DockItem: Sendable {
 nonisolated final class DockWatcher: @unchecked Sendable {
     static let shared = DockWatcher()
 
-    private let lock = OSAllocatedUnfairLock<[DockItem]>(initialState: [])
+    private struct State: Sendable {
+        var items: [DockItem] = []
+    }
+
+    private let lock = OSAllocatedUnfairLock<State>(initialState: State())
     private var refreshTimer: Timer?
     private var debounceTimer: Timer?
 
     var dockItems: [DockItem] {
-        lock.withLock { $0 }
+        lock.withLock { $0.items }
     }
 
     private init() {}
 
     func start() {
+        dispatchPrecondition(condition: .onQueue(.main))
         refresh()
         setupNotifications()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
@@ -32,8 +37,11 @@ nonisolated final class DockWatcher: @unchecked Sendable {
     }
 
     func stop() {
+        dispatchPrecondition(condition: .onQueue(.main))
         refreshTimer?.invalidate()
         refreshTimer = nil
+        debounceTimer?.invalidate()
+        debounceTimer = nil
         let center = NSWorkspace.shared.notificationCenter
         center.removeObserver(self)
     }
@@ -56,9 +64,11 @@ nonisolated final class DockWatcher: @unchecked Sendable {
     }
 
     private func debounceRefresh() {
-        debounceTimer?.invalidate()
-        debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
-            self?.refresh()
+        DispatchQueue.main.async { [weak self] in
+            self?.debounceTimer?.invalidate()
+            self?.debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
+                self?.refresh()
+            }
         }
     }
 
@@ -71,7 +81,7 @@ nonisolated final class DockWatcher: @unchecked Sendable {
                 print("  - \"\(item.title)\" bundle=\(item.bundleIdentifier ?? "nil") frame=\(item.frame) subrole=\(item.subrole ?? "nil")")
             }
             #endif
-            self?.lock.withLock { $0 = items }
+            self?.lock.withLock { $0.items = items }
         }
     }
 
@@ -122,8 +132,13 @@ nonisolated final class DockWatcher: @unchecked Sendable {
 
         var position = CGPoint.zero
         var size = CGSize.zero
-        // posRef/sizeRef are guaranteed to be AXValue after successful AXUIElementCopyAttributeValue
+        guard let posRef, CFGetTypeID(posRef) == AXValueGetTypeID(),
+              let sizeRef, CFGetTypeID(sizeRef) == AXValueGetTypeID() else {
+            return nil
+        }
+        // swiftlint:disable:next force_cast
         let posValue = posRef as! AXValue
+        // swiftlint:disable:next force_cast
         let sizeValue = sizeRef as! AXValue
         AXValueGetValue(posValue, .cgPoint, &position)
         AXValueGetValue(sizeValue, .cgSize, &size)
@@ -138,8 +153,8 @@ nonisolated final class DockWatcher: @unchecked Sendable {
         var url: URL?
         var bundleIdentifier: String?
         if let urlRef, CFGetTypeID(urlRef as CFTypeRef) == CFURLGetTypeID() {
-            let cfURL = urlRef as! CFURL
-            let nsURL = cfURL as URL
+            // swiftlint:disable:next force_cast
+            let nsURL = (urlRef as! CFURL) as URL
             url = nsURL
             if let bundle = Bundle(url: nsURL) {
                 bundleIdentifier = bundle.bundleIdentifier
