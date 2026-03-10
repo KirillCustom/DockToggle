@@ -207,50 +207,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
 
     // MARK: - EventTapDelegate
 
-    nonisolated func eventTapDidReceiveClick(at point: CGPoint) -> Bool {
+    /// Fast check — only rect matching and process lookup, no AX IPC.
+    /// Runs inside the event tap callback and must return quickly.
+    nonisolated func eventTapResolveClick(at point: CGPoint) -> ClickTarget? {
         let items = DockWatcher.shared.dockItems
-        let prefs = Preferences.shared
-
-        guard prefs.isEnabled else { return false }
+        guard Preferences.shared.isEnabled else { return nil }
 
         for item in items {
             guard item.frame.contains(point) else { continue }
-
-            print("[EventTap] Hit dock item: \"\(item.title)\" bundle=\(item.bundleIdentifier ?? "nil")")
-
-            guard !AppMatcher.shouldExclude(item) else {
-                print("[EventTap] Excluded, passing through")
-                return false
-            }
-
-            guard let app = AppMatcher.findRunningApp(for: item) else {
-                print("[EventTap] No running app found for \"\(item.title)\"")
-                return false
-            }
-
-            print("[EventTap] App: \(app.localizedName ?? "?") active=\(app.isActive) hidden=\(app.isHidden)")
-
-            if WindowToggler.isFullscreen(app: app) {
-                print("[EventTap] Fullscreen, passing through")
-                return false
-            }
-
-            if app.isActive {
-                print("[EventTap] Toggling \(app.localizedName ?? "?")")
-                WindowToggler.toggle(app: app)
-                return true
-            }
-
-            // App not active — check if it has minimized windows to restore
-            if WindowToggler.hasMinimizedWindows(app: app) {
-                print("[EventTap] Restoring minimized windows for \(app.localizedName ?? "?")")
-                WindowToggler.restoreAndActivate(app: app)
-                return true
-            }
-
-            return false
+            guard !AppMatcher.shouldExclude(item) else { return nil }
+            guard let app = AppMatcher.findRunningApp(for: item) else { return nil }
+            guard app.isActive else { return nil }
+            return ClickTarget(item: item, app: app)
         }
 
-        return false
+        return nil
+    }
+
+    /// Heavy work — AXUIElement IPC calls. Runs async on main queue, outside the event tap callback.
+    nonisolated func eventTapHandleClick(target: ClickTarget) {
+        let app = target.app
+        let item = target.item
+
+        print("[EventTap] Hit dock item: \"\(item.title)\" bundle=\(item.bundleIdentifier ?? "nil")")
+        print("[EventTap] App: \(app.localizedName ?? "?") active=\(app.isActive) hidden=\(app.isHidden)")
+
+        if WindowToggler.isFullscreen(app: app) {
+            print("[EventTap] Fullscreen, skipping")
+            return
+        }
+
+        if app.isActive {
+            print("[EventTap] Toggling \(app.localizedName ?? "?")")
+            WindowToggler.toggle(app: app)
+            return
+        }
+
+        if WindowToggler.hasMinimizedWindows(app: app) {
+            print("[EventTap] Restoring minimized windows for \(app.localizedName ?? "?")")
+            WindowToggler.restoreAndActivate(app: app)
+            return
+        }
     }
 }

@@ -1,8 +1,14 @@
 import Cocoa
 import CoreGraphics
 
+struct ClickTarget: Sendable {
+    let item: DockItem
+    let app: NSRunningApplication
+}
+
 protocol EventTapDelegate: AnyObject, Sendable {
-    nonisolated func eventTapDidReceiveClick(at point: CGPoint) -> Bool
+    nonisolated func eventTapResolveClick(at point: CGPoint) -> ClickTarget?
+    nonisolated func eventTapHandleClick(target: ClickTarget)
 }
 
 final class EventTapManager {
@@ -91,7 +97,10 @@ final class EventTapManager {
 
         let point = event.location
 
-        if let delegate = delegate, delegate.eventTapDidReceiveClick(at: point) {
+        if let delegate = delegate, let target = delegate.eventTapResolveClick(at: point) {
+            DispatchQueue.main.async { [weak delegate] in
+                delegate?.eventTapHandleClick(target: target)
+            }
             return nil
         }
 
