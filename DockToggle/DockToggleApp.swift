@@ -229,22 +229,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
         let app = target.app
         let item = target.item
 
+        #if DEBUG
         print("[EventTap] Hit dock item: \"\(item.title)\" bundle=\(item.bundleIdentifier ?? "nil")")
         print("[EventTap] App: \(app.localizedName ?? "?") active=\(app.isActive) hidden=\(app.isHidden)")
+        #endif
 
         if WindowToggler.isFullscreen(app: app) {
+            #if DEBUG
             print("[EventTap] Fullscreen, skipping")
+            #endif
             return
         }
 
         if app.isActive {
+            #if DEBUG
             print("[EventTap] Toggling \(app.localizedName ?? "?")")
+            #endif
             WindowToggler.toggle(app: app)
             return
         }
 
         if WindowToggler.hasMinimizedWindows(app: app) {
+            #if DEBUG
             print("[EventTap] Restoring minimized windows for \(app.localizedName ?? "?")")
+            #endif
             WindowToggler.restoreAndActivate(app: app)
             return
         }

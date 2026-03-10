@@ -5,7 +5,9 @@ nonisolated enum WindowToggler {
 
     static func toggle(app: NSRunningApplication, mode: ToggleMode = Preferences.shared.toggleMode) {
         guard app.isActive else {
+            #if DEBUG
             print("[WindowToggler] App not active, skipping")
+            #endif
             return
         }
 
@@ -23,26 +25,36 @@ nonisolated enum WindowToggler {
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
         let windows = getWindows(appElement)
 
+        #if DEBUG
         print("[WindowToggler] App \(app.localizedName ?? "?") pid=\(app.processIdentifier) has \(windows.count) windows")
+        #endif
 
         for (i, window) in windows.enumerated() {
             let minimized = isMinimized(window)
             var titleRef: CFTypeRef?
             AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &titleRef)
             let title = titleRef as? String ?? "untitled"
+            #if DEBUG
             print("[WindowToggler]   window[\(i)]: \"\(title)\" minimized=\(minimized)")
+            #endif
         }
 
         let visibleWindows = windows.filter { !isMinimized($0) }
 
         if visibleWindows.isEmpty {
+            #if DEBUG
             print("[WindowToggler] No visible windows, restoring minimized")
+            #endif
             restoreLastMinimized(windows: windows, app: app)
         } else {
+            #if DEBUG
             print("[WindowToggler] Minimizing \(visibleWindows.count) visible windows")
+            #endif
             for window in visibleWindows {
                 let result = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, true as CFTypeRef)
+                #if DEBUG
                 print("[WindowToggler]   minimize result: \(result.rawValue)")
+                #endif
             }
         }
     }
@@ -53,20 +65,26 @@ nonisolated enum WindowToggler {
         var focusedRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(appElement, kAXFocusedWindowAttribute as CFString, &focusedRef) == .success,
               let focusedWindow = focusedRef else {
+            #if DEBUG
             print("[WindowToggler] No focused window, restoring minimized")
+            #endif
             let windows = getWindows(appElement)
             restoreLastMinimized(windows: windows, app: app)
             return
         }
 
-        let window = focusedWindow as! AXUIElement
+        // CFTypeRef from AXUIElementCopyAttributeValue is already an AXUIElement
+        let window = focusedWindow as CFTypeRef as! AXUIElement
 
         if !isMinimized(window) && isStandardWindow(window) {
+            #if DEBUG
             print("[WindowToggler] Minimizing focused window")
-            let result = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, true as CFTypeRef)
-            print("[WindowToggler]   minimize result: \(result.rawValue)")
+            #endif
+            AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, true as CFTypeRef)
         } else {
+            #if DEBUG
             print("[WindowToggler] Focused window already minimized or non-standard, restoring")
+            #endif
             let windows = getWindows(appElement)
             restoreLastMinimized(windows: windows, app: app)
         }
@@ -74,16 +92,22 @@ nonisolated enum WindowToggler {
 
     private static func toggleHide(app: NSRunningApplication) {
         let result = app.hide()
+        #if DEBUG
         print("[WindowToggler] Hide result: \(result)")
+        #endif
     }
 
     private static func restoreLastMinimized(windows: [AXUIElement], app: NSRunningApplication) {
         let minimized = windows.filter { isMinimized($0) }
+        #if DEBUG
         print("[WindowToggler] Restoring \(minimized.count) minimized windows")
+        #endif
 
         for window in minimized {
             let result = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, false as CFTypeRef)
+            #if DEBUG
             print("[WindowToggler]   restore result: \(result.rawValue)")
+            #endif
         }
 
         app.activate()
@@ -93,7 +117,9 @@ nonisolated enum WindowToggler {
         var windowsRef: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsRef)
         guard result == .success, let windows = windowsRef as? [AXUIElement] else {
+            #if DEBUG
             print("[WindowToggler] Failed to get windows: \(result.rawValue)")
+            #endif
             return []
         }
         return windows.filter { isStandardWindow($0) }
@@ -127,7 +153,9 @@ nonisolated enum WindowToggler {
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
         let windows = getWindows(appElement)
         let minimized = windows.filter { isMinimized($0) }
+        #if DEBUG
         print("[WindowToggler] Restoring \(minimized.count) minimized windows")
+        #endif
         for window in minimized {
             AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, false as CFTypeRef)
         }

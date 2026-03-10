@@ -1,5 +1,6 @@
 import Cocoa
 import ApplicationServices
+import os.lock
 
 struct DockItem: Sendable {
     let frame: CGRect
@@ -12,9 +13,13 @@ struct DockItem: Sendable {
 nonisolated final class DockWatcher: @unchecked Sendable {
     static let shared = DockWatcher()
 
-    nonisolated(unsafe) private(set) var dockItems: [DockItem] = []
+    private let lock = OSAllocatedUnfairLock<[DockItem]>(initialState: [])
     private var refreshTimer: Timer?
     private var debounceTimer: Timer?
+
+    var dockItems: [DockItem] {
+        lock.withLock { $0 }
+    }
 
     private init() {}
 
@@ -60,13 +65,13 @@ nonisolated final class DockWatcher: @unchecked Sendable {
     func refresh() {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let items = Self.getDockItems()
+            #if DEBUG
             print("[DockWatcher] Found \(items.count) dock items")
             for item in items {
                 print("  - \"\(item.title)\" bundle=\(item.bundleIdentifier ?? "nil") frame=\(item.frame) subrole=\(item.subrole ?? "nil")")
             }
-            DispatchQueue.main.async {
-                self?.dockItems = items
-            }
+            #endif
+            self?.lock.withLock { $0 = items }
         }
     }
 
@@ -117,8 +122,11 @@ nonisolated final class DockWatcher: @unchecked Sendable {
 
         var position = CGPoint.zero
         var size = CGSize.zero
-        AXValueGetValue(posRef as! AXValue, .cgPoint, &position)
-        AXValueGetValue(sizeRef as! AXValue, .cgSize, &size)
+        // posRef/sizeRef are guaranteed to be AXValue after successful AXUIElementCopyAttributeValue
+        let posValue = posRef as! AXValue
+        let sizeValue = sizeRef as! AXValue
+        AXValueGetValue(posValue, .cgPoint, &position)
+        AXValueGetValue(sizeValue, .cgSize, &size)
 
         AXUIElementCopyAttributeValue(element, kAXTitleAttribute as CFString, &titleRef)
         let title = titleRef as? String ?? ""
@@ -129,13 +137,12 @@ nonisolated final class DockWatcher: @unchecked Sendable {
         AXUIElementCopyAttributeValue(element, kAXURLAttribute as CFString, &urlRef)
         var url: URL?
         var bundleIdentifier: String?
-        if let urlValue = urlRef {
-            if let cfURL = urlValue as! CFURL? {
-                let nsURL = cfURL as URL
-                url = nsURL
-                if let bundle = Bundle(url: nsURL) {
-                    bundleIdentifier = bundle.bundleIdentifier
-                }
+        if let urlRef, CFGetTypeID(urlRef as CFTypeRef) == CFURLGetTypeID() {
+            let cfURL = urlRef as! CFURL
+            let nsURL = cfURL as URL
+            url = nsURL
+            if let bundle = Bundle(url: nsURL) {
+                bundleIdentifier = bundle.bundleIdentifier
             }
         }
 
