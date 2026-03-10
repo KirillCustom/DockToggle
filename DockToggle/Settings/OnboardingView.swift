@@ -1,11 +1,58 @@
 import SwiftUI
 import Combine
 
+// MARK: - Draggable App Icon (NSViewRepresentable)
+
+struct DraggableAppIcon: NSViewRepresentable {
+    let size: CGFloat
+
+    func makeNSView(context: Context) -> DraggableIconView {
+        let view = DraggableIconView(iconSize: size)
+        return view
+    }
+
+    func updateNSView(_ nsView: DraggableIconView, context: Context) {}
+}
+
+final class DraggableIconView: NSView, NSDraggingSource {
+    init(iconSize: CGFloat) {
+        super.init(frame: NSRect(x: 0, y: 0, width: iconSize, height: iconSize))
+        let imageView = NSImageView(frame: bounds)
+        imageView.image = NSApp.applicationIconImage
+        imageView.imageScaling = .scaleProportionallyUpOrDown
+        imageView.autoresizingMask = [.width, .height]
+        addSubview(imageView)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var mouseDownCanMoveWindow: Bool { false }
+
+    override func mouseDown(with event: NSEvent) {
+        let bundleURL = Bundle.main.bundleURL as NSURL
+        let draggingItem = NSDraggingItem(pasteboardWriter: bundleURL)
+        let iconImage = NSApp.applicationIconImage ?? NSImage()
+        draggingItem.setDraggingFrame(bounds, contents: iconImage)
+        beginDraggingSession(with: [draggingItem], event: event, source: self)
+    }
+
+    func draggingSession(
+        _ session: NSDraggingSession,
+        sourceOperationMaskFor context: NSDraggingContext
+    ) -> NSDragOperation {
+        .copy
+    }
+}
+
+// MARK: - Onboarding View
+
 struct OnboardingView: View {
     var onComplete: () -> Void
 
     @State private var page = 0
     @State private var accessibilityGranted = AccessibilityHelper.checkAccessibility()
+    @State private var showDragHint = false
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     private let totalPages = 3
@@ -75,9 +122,21 @@ struct OnboardingView: View {
     private var accessibilityPage: some View {
         VStack(spacing: 20) {
             Spacer()
-            Image(systemName: "hand.raised.circle.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(.orange)
+
+            ZStack {
+                DraggableAppIcon(size: 80)
+                    .frame(width: 80, height: 80)
+                    .shadow(color: .accentColor.opacity(showDragHint ? 0.4 : 0), radius: 12)
+                    .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: showDragHint)
+
+                if showDragHint {
+                    Image(systemName: "arrow.up.right")
+                        .font(.title2.bold())
+                        .foregroundStyle(.secondary)
+                        .offset(x: 50, y: -40)
+                        .transition(.opacity)
+                }
+            }
 
             Text("Accessibility Permission")
                 .font(.title2.bold())
@@ -96,6 +155,11 @@ struct OnboardingView: View {
                     AccessibilityHelper.requestAccessibility()
                 }
                 .controlSize(.large)
+
+                Text("or drag the app icon into\nSystem Settings → Accessibility")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
             }
             Spacer()
         }
@@ -103,6 +167,11 @@ struct OnboardingView: View {
         .onReceive(timer) { _ in
             if !accessibilityGranted {
                 accessibilityGranted = AccessibilityHelper.checkAccessibility()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            if !accessibilityGranted && !showDragHint {
+                withAnimation { showDragHint = true }
             }
         }
     }

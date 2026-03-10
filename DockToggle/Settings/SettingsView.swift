@@ -94,9 +94,15 @@ struct GeneralSettingsView: View {
 
             Section("Accessibility") {
                 HStack(spacing: 12) {
-                    Image(systemName: accessibilityGranted ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundColor(accessibilityGranted ? .green : .red)
-                        .imageScale(.large)
+                    if accessibilityGranted {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .imageScale(.large)
+                    } else {
+                        DraggableAppIcon(size: 24)
+                            .frame(width: 24, height: 24)
+                            .help("Drag to System Settings → Accessibility")
+                    }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(accessibilityGranted ? "Permission granted" : "Permission required")
                         if !accessibilityGranted {

@@ -1,46 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Accessibility Permission Required" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Требуется доступ к Универсальному доступу"
-          }
-        }
-      }
-    },
-    "DockToggle needs Accessibility access to work. After an update, macOS may require you to re-grant this permission.\n\nPlease remove the old DockToggle entry from System Settings → Privacy & Security → Accessibility, then add the new one." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DockToggle необходим доступ к Универсальному доступу.\nПосле обновления macOS может потребовать повторное разрешение.\n\nУдалите старую запись DockToggle из Системных настроек → Конфиденциальность → Универсальный доступ, затем добавьте новую."
-          }
-        }
-      }
-    },
-    "Later" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Позже"
-          }
-        }
-      }
-    },
-    "Open Settings" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Открыть настройки"
-          }
-        }
-      }
-    },
     "© 2026 DockToggle" : {
       "localizations" : {
         "ru" : {
@@ -77,6 +37,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Разрешение на Универсальный доступ"
+          }
+        }
+      }
+    },
+    "Accessibility Permission Required" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Требуется доступ к Универсальному доступу"
           }
         }
       }
@@ -154,6 +124,16 @@
         }
       }
     },
+    "DockToggle needs Accessibility access to work. After an update, macOS may require you to re-grant this permission.\n\nPlease remove the old DockToggle entry from System Settings → Privacy & Security → Accessibility, then add the new one." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DockToggle необходим доступ к Универсальному доступу.\nПосле обновления macOS может потребовать повторное разрешение.\n\nУдалите старую запись DockToggle из Системных настроек → Конфиденциальность → Универсальный доступ, затем добавьте новую."
+          }
+        }
+      }
+    },
     "DockToggle will run quietly in your menu bar.\nClick any active app in the Dock to minimize it." : {
       "localizations" : {
         "ru" : {
@@ -173,6 +153,9 @@
           }
         }
       }
+    },
+    "Drag to System Settings → Accessibility" : {
+
     },
     "Enable DockToggle" : {
       "localizations" : {
@@ -254,6 +237,16 @@
         }
       }
     },
+    "Later" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позже"
+          }
+        }
+      }
+    },
     "Launch at login" : {
       "localizations" : {
         "ru" : {
@@ -310,6 +303,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Нет исключений"
+          }
+        }
+      }
+    },
+    "Open Settings" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть настройки"
+          }
+        }
+      }
+    },
+    "or drag the app icon into\nSystem Settings → Accessibility" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "или перетащите иконку приложения в\nСистемные настройки → Универсальный доступ"
           }
         }
       }
