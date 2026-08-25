@@ -65,6 +65,28 @@ struct DockPressGateTests {
         #expect(gate.expire() == .ignore)
     }
 
+    // MARK: - Clamping the handed-off press
+
+    @Test("a point outside the icon is pulled back inside it")
+    func clampPullsPointIntoFrame() {
+        let frame = CGRect(x: 100, y: 880, width: 50, height: 50)
+        let clamped = DockPressGate.clamp(CGPoint(x: 260, y: 700), to: frame)
+        #expect(frame.contains(clamped))
+    }
+
+    @Test("a point already inside the icon is left alone")
+    func clampKeepsInsidePoint() {
+        let frame = CGRect(x: 100, y: 880, width: 50, height: 50)
+        let point = CGPoint(x: 120, y: 900)
+        #expect(DockPressGate.clamp(point, to: frame) == point)
+    }
+
+    @Test("an empty frame leaves the point untouched")
+    func clampIgnoresEmptyFrame() {
+        let point = CGPoint(x: 120, y: 900)
+        #expect(DockPressGate.clamp(point, to: .zero) == point)
+    }
+
     @Test("cancel drops the press without handing it off")
     func cancelDropsPress() {
         var gate = DockPressGate()

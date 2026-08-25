@@ -66,6 +66,7 @@ struct GeneralSettingsView: View {
     @AppStorage("toggleMode") private var toggleMode = ToggleMode.minimize.rawValue
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @State private var automaticallyChecks = true
+    @State private var loginItemError: String?
     @State private var accessibilityGranted = AccessibilityHelper.checkAccessibility()
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -81,8 +82,13 @@ struct GeneralSettingsView: View {
                 }
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, newValue in
-                        Preferences.shared.updateLoginItem(newValue)
+                        applyLaunchAtLogin(newValue)
                     }
+                if let loginItemError {
+                    Text(loginItemError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
                 if let updater {
                     Toggle("Automatically check for updates", isOn: $automaticallyChecks)
                         .onAppear { automaticallyChecks = updater.automaticallyChecksForUpdates }
@@ -122,10 +128,29 @@ struct GeneralSettingsView: View {
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
+        .onAppear {
+            // The login item can be revoked in System Settings behind our back.
+            Preferences.shared.syncLoginItemFlag()
+        }
         .onReceive(timer) { _ in
             if !accessibilityGranted {
                 accessibilityGranted = AccessibilityHelper.checkAccessibility()
             }
+        }
+    }
+
+    private func applyLaunchAtLogin(_ enabled: Bool) {
+        // Reverting the switch re-enters this handler; the system is already in that state.
+        guard enabled != Preferences.shared.isLoginItemRegistered else { return }
+
+        do {
+            try Preferences.shared.updateLoginItem(enabled)
+            loginItemError = Preferences.shared.loginItemNeedsApproval
+                ? NSLocalizedString("Approve DockToggle in System Settings → General → Login Items.", comment: "")
+                : nil
+        } catch {
+            loginItemError = error.localizedDescription
+            Preferences.shared.syncLoginItemFlag()
         }
     }
 }

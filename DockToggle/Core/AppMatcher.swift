@@ -6,16 +6,16 @@ nonisolated enum AppMatcher {
     static func findRunningApp(for item: DockItem) -> NSRunningApplication? {
         if shouldExclude(item) { return nil }
 
-        let apps = NSWorkspace.shared.runningApplications
-
+        // Targeted lookup first: this runs in the event tap callback, and building the full
+        // list of running applications on every Dock click is what stalls it.
         if let bundleId = item.bundleIdentifier {
-            if let app = apps.first(where: { $0.bundleIdentifier == bundleId }) {
+            if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first {
                 return app
             }
         }
 
         if !item.title.isEmpty {
-            if let app = apps.first(where: { $0.localizedName == item.title }) {
+            if let app = NSWorkspace.shared.runningApplications.first(where: { $0.localizedName == item.title }) {
                 return app
             }
         }

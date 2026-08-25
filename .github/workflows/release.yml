@@ -92,6 +92,10 @@ jobs:
           rm -f "$KEY_FILE"
           echo "$OUTPUT"
           SIGNATURE=$(echo "$OUTPUT" | grep 'sparkle:edSignature=' | sed 's/.*sparkle:edSignature="//;s/".*//')
+          if [ -z "$SIGNATURE" ]; then
+            echo "::error::sign_update produced no EdDSA signature — refusing to publish an appcast that would break auto-updates for every existing user."
+            exit 1
+          fi
           echo "signature=$SIGNATURE" >> "$GITHUB_OUTPUT"
           ZIP_SIZE=$(stat -f%z build/DockToggle.zip)
           echo "zip_size=$ZIP_SIZE" >> "$GITHUB_OUTPUT"

@@ -55,17 +55,29 @@ nonisolated final class Preferences: Sendable {
         excludedBundleIds = excludedBundleIds.filter { $0 != bundleId }
     }
 
-    func updateLoginItem(_ enabled: Bool) {
-        do {
-            if enabled {
-                try SMAppService.mainApp.register()
-            } else {
-                try SMAppService.mainApp.unregister()
-            }
-        } catch {
-            #if DEBUG
-            print("Login item error: \(error)")
-            #endif
+    /// The real state, straight from the system — the user can also flip this in
+    /// System Settings, and our own copy in UserDefaults then lies about it.
+    var isLoginItemRegistered: Bool {
+        SMAppService.mainApp.status == .enabled
+    }
+
+    var loginItemNeedsApproval: Bool {
+        SMAppService.mainApp.status == .requiresApproval
+    }
+
+    /// Throws so the caller can show the failure instead of leaving a switch that claims
+    /// the app will start at login when it will not.
+    func updateLoginItem(_ enabled: Bool) throws {
+        if enabled {
+            try SMAppService.mainApp.register()
+        } else {
+            try SMAppService.mainApp.unregister()
         }
+        UserDefaults.standard.set(isLoginItemRegistered, forKey: "launchAtLogin")
+    }
+
+    /// Brings the stored flag back in line with the system.
+    func syncLoginItemFlag() {
+        UserDefaults.standard.set(isLoginItemRegistered, forKey: "launchAtLogin")
     }
 }

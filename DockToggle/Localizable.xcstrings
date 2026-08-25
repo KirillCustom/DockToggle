@@ -61,6 +61,16 @@
         }
       }
     },
+    "Approve DockToggle in System Settings → General → Login Items." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешите DockToggle в Системных настройках → Основные → Объекты входа."
+          }
+        }
+      }
+    },
     "Automatically check for updates" : {
       "localizations" : {
         "ru" : {

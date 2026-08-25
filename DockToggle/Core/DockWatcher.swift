@@ -29,6 +29,7 @@ nonisolated final class DockWatcher: @unchecked Sendable {
 
     func start() {
         dispatchPrecondition(condition: .onQueue(.main))
+        guard refreshTimer == nil else { return }
         refresh()
         setupNotifications()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
@@ -85,12 +86,32 @@ nonisolated final class DockWatcher: @unchecked Sendable {
         }
     }
 
-    static func getDockItems() -> [DockItem] {
-        guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else {
-            return []
+    /// Asks the Dock what is actually under the pointer right now. Unlike the cached frames
+    /// this survives magnification and rearranging, but it is AX IPC — never call it from
+    /// the event tap callback.
+    static func itemAt(point: CGPoint) -> DockItem? {
+        guard let dockElement = dockApplicationElement() else { return nil }
+
+        var elementRef: AXUIElement?
+        guard AXUIElementCopyElementAtPosition(dockElement, Float(point.x), Float(point.y), &elementRef) == .success,
+              let element = elementRef else {
+            return nil
         }
 
-        let dockElement = AXUIElementCreateApplication(dockApp.processIdentifier)
+        return parseDockElement(element)
+    }
+
+    private static func dockApplicationElement() -> AXUIElement? {
+        guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else {
+            return nil
+        }
+        return AXUIElementCreateApplication(dockApp.processIdentifier)
+    }
+
+    static func getDockItems() -> [DockItem] {
+        guard let dockElement = dockApplicationElement() else {
+            return []
+        }
 
         var childrenRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(dockElement, kAXChildrenAttribute as CFString, &childrenRef) == .success,

@@ -25,3 +25,6 @@ xcuserdata/
 
 # Archives
 *.xcarchive
+
+# JetBrains IDEs
+.idea/

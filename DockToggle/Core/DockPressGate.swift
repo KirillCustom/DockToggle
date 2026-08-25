@@ -2,7 +2,7 @@ import CoreGraphics
 import Foundation
 
 /// What the event tap should do with a press on a Dock icon.
-enum DockPressDecision: Equatable {
+nonisolated enum DockPressDecision: Equatable {
     /// No press is being held — deliver the event as usual.
     case ignore
     /// Keep holding the press; we still don't know what it will become.
@@ -18,7 +18,7 @@ enum DockPressDecision: Equatable {
 /// press-and-hold menu).
 ///
 /// Pure state machine — the event tap owns the actual events and the hold timer.
-struct DockPressGate {
+nonisolated struct DockPressGate {
     /// How far the pointer may travel before the press counts as a drag.
     let dragThreshold: CGFloat
     /// How long a press may be held before the Dock gets it back.
@@ -64,5 +64,15 @@ struct DockPressGate {
     /// Drop the press without handing it anywhere (tap disabled, toggling turned off).
     mutating func cancel() {
         origin = nil
+    }
+
+    /// Keeps a point inside a Dock item. A single drag event can jump far past the
+    /// threshold, and a press handed back outside its icon lands on the wrong one.
+    static func clamp(_ point: CGPoint, to frame: CGRect) -> CGPoint {
+        guard frame.width > 2, frame.height > 2 else { return point }
+        return CGPoint(
+            x: min(max(point.x, frame.minX + 1), frame.maxX - 1),
+            y: min(max(point.y, frame.minY + 1), frame.maxY - 1)
+        )
     }
 }

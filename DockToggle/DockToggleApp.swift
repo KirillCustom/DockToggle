@@ -32,13 +32,6 @@ struct MenuBarMenu: View {
             Divider()
         }
         Toggle("Enabled", isOn: $isEnabled)
-            .onChange(of: isEnabled) { _, newValue in
-                if newValue {
-                    appDelegate.startToggling()
-                } else {
-                    appDelegate.stopToggling()
-                }
-            }
         Divider()
         Button("Settings…") {
             appDelegate.openSettings()
@@ -61,6 +54,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
     private var settingsWindow: NSWindow?
     private var onboardingWindow: NSWindow?
     private var accessibilityTimer: Timer?
+    private var defaultsObserver: NSObjectProtocol?
+    private var isTogglingRequested = false
 
     override init() {
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
@@ -72,6 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
         eventTapManager.delegate = self
         updateAccessibilityStatus()
         startAccessibilityMonitor()
+        observeEnabledFlag()
 
         let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
 
@@ -87,8 +83,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
         }
     }
 
+    /// Follows the master switch wherever it is flipped. The menu bar item exists only
+    /// while the menu is open, so its onChange cannot be the only place this happens —
+    /// the switch in Settings writes the same key and nothing else.
+    private func observeEnabledFlag() {
+        defaultsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: UserDefaults.standard,
+            queue: .main
+        ) { [weak self] _ in
+            self?.syncTogglingState()
+        }
+    }
+
+    private func syncTogglingState() {
+        guard UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") else { return }
+        let shouldRun = Preferences.shared.isEnabled
+        guard shouldRun != isTogglingRequested else { return }
+
+        if shouldRun {
+            startToggling()
+        } else {
+            stopToggling()
+        }
+    }
+
     private func updateAccessibilityStatus() {
-        UserDefaults.standard.set(AccessibilityHelper.checkAccessibility(), forKey: "accessibilityGranted")
+        let granted = AccessibilityHelper.checkAccessibility()
+        guard granted != UserDefaults.standard.bool(forKey: "accessibilityGranted") else { return }
+        UserDefaults.standard.set(granted, forKey: "accessibilityGranted")
     }
 
     private func startAccessibilityMonitor() {
@@ -106,11 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
         alert.addButton(withTitle: NSLocalizedString("Later", comment: ""))
 
         NSApp.setActivationPolicy(.regular)
-        if #available(macOS 14.0, *) {
-            NSApp.activate()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-        }
+        NSApp.activate()
 
         if alert.runModal() == .alertFirstButtonReturn {
             AccessibilityHelper.openAccessibilitySettings()
@@ -120,7 +139,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        // If settings or onboarding window is open, just close it instead of quitting
+        // Cmd+Q with a window in front means "close the window". Everything else — the Quit
+        // menu item, logout, restart, shutdown — must go through, or macOS reports that
+        // DockToggle refused to quit.
+        guard let event = NSApp.currentEvent, event.type == .keyDown else { return .terminateNow }
+
         if let window = settingsWindow, window.isVisible {
             window.close()
             return .terminateCancel
@@ -133,15 +156,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        if let defaultsObserver {
+            NotificationCenter.default.removeObserver(defaultsObserver)
+        }
+        defaultsObserver = nil
+        accessibilityTimer?.invalidate()
         stopToggling()
     }
 
     func startToggling() {
+        isTogglingRequested = true
         dockWatcher.start()
         eventTapManager.start()
     }
 
     func stopToggling() {
+        isTogglingRequested = false
         eventTapManager.stop()
         dockWatcher.stop()
     }
@@ -150,12 +180,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
 
     private func showOnboarding() {
         let onboardingView = OnboardingView { [weak self] in
-            UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
             self?.onboardingWindow?.close()
-            self?.onboardingWindow = nil
-            if Preferences.shared.isEnabled {
-                self?.startToggling()
-            }
         }
 
         NSApp.setActivationPolicy(.regular)
@@ -171,12 +196,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
         window.setContentSize(NSSize(width: 500, height: 420))
         window.center()
         window.makeKeyAndOrderFront(nil)
-        if #available(macOS 14.0, *) {
-            NSApp.activate()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-        }
+        NSApp.activate()
         onboardingWindow = window
+    }
+
+    /// Runs whether the wizard was finished or just closed with the red button — otherwise
+    /// the app sits in the menu bar doing nothing and reopens the wizard on every launch.
+    private func finishOnboarding() {
+        guard !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") else { return }
+        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+        if Preferences.shared.isEnabled {
+            startToggling()
+        }
     }
 
     func openSettings() {
@@ -184,11 +215,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
 
         if let window = settingsWindow {
             window.makeKeyAndOrderFront(nil)
-            if #available(macOS 14.0, *) {
             NSApp.activate()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-        }
             return
         }
 
@@ -204,11 +231,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
         window.setContentSize(NSSize(width: 620, height: 420))
         window.center()
         window.makeKeyAndOrderFront(nil)
-        if #available(macOS 14.0, *) {
-            NSApp.activate()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-        }
+        NSApp.activate()
         settingsWindow = window
     }
 
@@ -216,61 +239,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
 
     func windowWillClose(_ notification: Notification) {
         guard let window = notification.object as? NSWindow else { return }
-        if window === settingsWindow || window === onboardingWindow {
-            NSApp.setActivationPolicy(.accessory)
+        let isOnboarding = window === onboardingWindow
+        guard isOnboarding || window === settingsWindow else { return }
+
+        if isOnboarding {
+            finishOnboarding()
+            onboardingWindow = nil
         }
+        NSApp.setActivationPolicy(.accessory)
     }
 
     // MARK: - EventTapDelegate
 
-    /// Fast check — only rect matching and process lookup, no AX IPC.
+    /// Fast check — rect matching against the cached Dock frames and a process lookup.
     /// Runs inside the event tap callback and must return quickly.
     nonisolated func eventTapResolveClick(at point: CGPoint) -> ClickTarget? {
-        let items = DockWatcher.shared.dockItems
         guard Preferences.shared.isEnabled else { return nil }
 
-        for item in items {
-            guard item.frame.contains(point) else { continue }
-            guard !AppMatcher.shouldExclude(item) else { return nil }
-            guard let app = AppMatcher.findRunningApp(for: item) else { return nil }
-            guard app.isActive else { return nil }
-            return ClickTarget(item: item, app: app)
+        for item in DockWatcher.shared.dockItems where item.frame.contains(point) {
+            return clickTarget(for: item)
         }
 
         return nil
     }
 
-    /// Heavy work — AXUIElement IPC calls. Runs async on main queue, outside the event tap callback.
-    nonisolated func eventTapHandleClick(target: ClickTarget) {
+    /// Precise check against the live Dock — the cached frames are wrong while the Dock
+    /// magnifies or rearranges. AX IPC, so it runs on the main queue, not in the callback.
+    nonisolated func eventTapRefineClick(at point: CGPoint) -> ClickTarget? {
+        guard Preferences.shared.isEnabled, let item = DockWatcher.itemAt(point: point) else { return nil }
+        return clickTarget(for: item)
+    }
+
+    private nonisolated func clickTarget(for item: DockItem) -> ClickTarget? {
+        guard let app = AppMatcher.findRunningApp(for: item), app.isActive else { return nil }
+        return ClickTarget(item: item, app: app)
+    }
+
+    /// Heavy work — AXUIElement IPC calls. Runs on the main queue, outside the event tap
+    /// callback. Returns false when we leave the click alone, so the tap can replay it for
+    /// the Dock instead of swallowing it.
+    nonisolated func eventTapHandleClick(target: ClickTarget) -> Bool {
         let app = target.app
-        let item = target.item
 
         #if DEBUG
-        print("[EventTap] Hit dock item: \"\(item.title)\" bundle=\(item.bundleIdentifier ?? "nil")")
+        print("[EventTap] Hit dock item: \"\(target.item.title)\" bundle=\(target.item.bundleIdentifier ?? "nil")")
         print("[EventTap] App: \(app.localizedName ?? "?") active=\(app.isActive) hidden=\(app.isHidden)")
         #endif
 
+        guard app.isActive else { return false }
+
         if WindowToggler.isFullscreen(app: app) {
             #if DEBUG
-            print("[EventTap] Fullscreen, skipping")
+            print("[EventTap] Fullscreen, leaving the click to the Dock")
             #endif
-            return
+            return false
         }
 
-        if app.isActive {
-            #if DEBUG
-            print("[EventTap] Toggling \(app.localizedName ?? "?")")
-            #endif
-            WindowToggler.toggle(app: app)
-            return
-        }
-
-        if WindowToggler.hasMinimizedWindows(app: app) {
-            #if DEBUG
-            print("[EventTap] Restoring minimized windows for \(app.localizedName ?? "?")")
-            #endif
-            WindowToggler.restoreAndActivate(app: app)
-            return
-        }
+        #if DEBUG
+        print("[EventTap] Toggling \(app.localizedName ?? "?")")
+        #endif
+        return WindowToggler.toggle(app: app)
     }
 }
