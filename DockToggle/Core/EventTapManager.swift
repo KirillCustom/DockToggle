@@ -140,16 +140,26 @@ final class EventTapManager {
         case .leftMouseDown:
             return handleMouseDown(event)
         case .leftMouseDragged:
-            guard gate.move(to: event.location) == .handOff else {
-                return Unmanaged.passUnretained(event)
-            }
-            handOffToDock()
-            // Swallow this one drag: the Dock must see the re-posted mouse-down first,
-            // and an unpaired drag can be dropped by its tracking loop.
-            return nil
+            return handleDragged(event)
         case .leftMouseUp:
             return handleMouseUp(event)
         default:
+            return Unmanaged.passUnretained(event)
+        }
+    }
+
+    /// Every drag is swallowed while a press is pending, not only the one that crosses the
+    /// threshold: the mouse-down for this press is still held back, and letting an
+    /// under-threshold drag through would give the Dock a drag with no matching down —
+    /// exactly the unpaired event its own tracking loop can drop.
+    private func handleDragged(_ event: CGEvent) -> Unmanaged<CGEvent>? {
+        switch gate.move(to: event.location) {
+        case .handOff:
+            handOffToDock()
+            return nil
+        case .wait:
+            return nil
+        case .ignore, .toggle:
             return Unmanaged.passUnretained(event)
         }
     }

@@ -10,11 +10,19 @@ struct DockItem: Sendable {
     let subrole: String?
 }
 
+/// Which of a Dock icon's two axes actually tracks the pointer. The Dock's AX frames have
+/// been observed shifted on the short axis on newer macOS, so hit-testing trusts only this one.
+nonisolated enum DockOrientation: Sendable {
+    case horizontal
+    case vertical
+}
+
 nonisolated final class DockWatcher: @unchecked Sendable {
     static let shared = DockWatcher()
 
     private struct State: Sendable {
         var items: [DockItem] = []
+        var orientation: DockOrientation = .horizontal
     }
 
     private let lock = OSAllocatedUnfairLock<State>(initialState: State())
@@ -23,6 +31,10 @@ nonisolated final class DockWatcher: @unchecked Sendable {
 
     var dockItems: [DockItem] {
         lock.withLock { $0.items }
+    }
+
+    var orientation: DockOrientation {
+        lock.withLock { $0.orientation }
     }
 
     private init() {}
@@ -75,30 +87,49 @@ nonisolated final class DockWatcher: @unchecked Sendable {
 
     func refresh() {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let items = Self.getDockItems()
+            let result = Self.getDockItems()
             #if DEBUG
-            print("[DockWatcher] Found \(items.count) dock items")
-            for item in items {
+            print("[DockWatcher] Found \(result.items.count) dock items, orientation=\(result.orientation)")
+            for item in result.items {
                 print("  - \"\(item.title)\" bundle=\(item.bundleIdentifier ?? "nil") frame=\(item.frame) subrole=\(item.subrole ?? "nil")")
             }
             #endif
-            self?.lock.withLock { $0.items = items }
+            self?.lock.withLock {
+                $0.items = result.items
+                $0.orientation = result.orientation
+            }
         }
     }
 
     /// Asks the Dock what is actually under the pointer right now. Unlike the cached frames
     /// this survives magnification and rearranging, but it is AX IPC — never call it from
     /// the event tap callback.
+    ///
+    /// Walks the Dock's own item list rather than using `AXUIElementCopyElementAtPosition`,
+    /// and matches only along the Dock's long axis: position-based AX hit-testing here has
+    /// been observed unreliable on the short axis on newer macOS, while the long-axis
+    /// coordinates stay truthful.
     static func itemAt(point: CGPoint) -> DockItem? {
-        guard let dockElement = dockApplicationElement() else { return nil }
+        guard AXIsProcessTrusted(), let dockElement = dockApplicationElement() else { return nil }
 
-        var elementRef: AXUIElement?
-        guard AXUIElementCopyElementAtPosition(dockElement, Float(point.x), Float(point.y), &elementRef) == .success,
-              let element = elementRef else {
+        var childrenRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(dockElement, kAXChildrenAttribute as CFString, &childrenRef) == .success,
+              let children = childrenRef as? [AXUIElement] else {
             return nil
         }
 
-        return parseDockElement(element)
+        for child in children where roleString(child) == "AXList" {
+            guard let listFrame = axFrame(child),
+                  let listChildren = elementArray(child, kAXChildrenAttribute) else { continue }
+            let horizontal = listFrame.width >= listFrame.height
+
+            for element in listChildren {
+                guard let frame = axFrame(element),
+                      DockGeometry.longAxisContains(point, itemFrame: frame, horizontal: horizontal) else { continue }
+                return parseDockElement(element)
+            }
+        }
+        return nil
     }
 
     private static func dockApplicationElement() -> AXUIElement? {
@@ -108,27 +139,24 @@ nonisolated final class DockWatcher: @unchecked Sendable {
         return AXUIElementCreateApplication(dockApp.processIdentifier)
     }
 
-    static func getDockItems() -> [DockItem] {
+    static func getDockItems() -> (items: [DockItem], orientation: DockOrientation) {
         guard let dockElement = dockApplicationElement() else {
-            return []
+            return ([], .horizontal)
         }
 
-        var childrenRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(dockElement, kAXChildrenAttribute as CFString, &childrenRef) == .success,
-              let children = childrenRef as? [AXUIElement] else {
-            return []
+        guard let children = elementArray(dockElement, kAXChildrenAttribute) else {
+            return ([], .horizontal)
         }
 
         var items: [DockItem] = []
+        var orientation: DockOrientation = .horizontal
 
-        for child in children {
-            var roleRef: CFTypeRef?
-            AXUIElementCopyAttributeValue(child, kAXRoleAttribute as CFString, &roleRef)
-            guard let role = roleRef as? String, role == "AXList" else { continue }
+        for child in children where roleString(child) == "AXList" {
+            if let listFrame = axFrame(child) {
+                orientation = listFrame.width >= listFrame.height ? .horizontal : .vertical
+            }
 
-            var listChildrenRef: CFTypeRef?
-            guard AXUIElementCopyAttributeValue(child, kAXChildrenAttribute as CFString, &listChildrenRef) == .success,
-                  let listChildren = listChildrenRef as? [AXUIElement] else { continue }
+            guard let listChildren = elementArray(child, kAXChildrenAttribute) else { continue }
 
             for element in listChildren {
                 guard let item = parseDockElement(element) else { continue }
@@ -136,33 +164,46 @@ nonisolated final class DockWatcher: @unchecked Sendable {
             }
         }
 
-        return items
+        return (items, orientation)
     }
 
-    private static func parseDockElement(_ element: AXUIElement) -> DockItem? {
+    private static func roleString(_ element: AXUIElement) -> String? {
+        var roleRef: CFTypeRef?
+        AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleRef)
+        return roleRef as? String
+    }
+
+    private static func elementArray(_ element: AXUIElement, _ attribute: String) -> [AXUIElement]? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success,
+              let array = value as? [AXUIElement] else { return nil }
+        return array
+    }
+
+    private static func axFrame(_ element: AXUIElement) -> CGRect? {
         var posRef: CFTypeRef?
         var sizeRef: CFTypeRef?
-        var titleRef: CFTypeRef?
-        var subroleRef: CFTypeRef?
-        var urlRef: CFTypeRef?
-
         guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &posRef) == .success,
-              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeRef) == .success else {
-            return nil
-        }
-
-        var position = CGPoint.zero
-        var size = CGSize.zero
-        guard let posRef, CFGetTypeID(posRef) == AXValueGetTypeID(),
+              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeRef) == .success,
+              let posRef, CFGetTypeID(posRef) == AXValueGetTypeID(),
               let sizeRef, CFGetTypeID(sizeRef) == AXValueGetTypeID() else {
             return nil
         }
+        var position = CGPoint.zero
+        var size = CGSize.zero
         // swiftlint:disable:next force_cast
-        let posValue = posRef as! AXValue
+        AXValueGetValue((posRef as! AXValue), .cgPoint, &position)
         // swiftlint:disable:next force_cast
-        let sizeValue = sizeRef as! AXValue
-        AXValueGetValue(posValue, .cgPoint, &position)
-        AXValueGetValue(sizeValue, .cgSize, &size)
+        AXValueGetValue((sizeRef as! AXValue), .cgSize, &size)
+        return CGRect(origin: position, size: size)
+    }
+
+    private static func parseDockElement(_ element: AXUIElement) -> DockItem? {
+        guard let frame = axFrame(element) else { return nil }
+
+        var titleRef: CFTypeRef?
+        var subroleRef: CFTypeRef?
+        var urlRef: CFTypeRef?
 
         AXUIElementCopyAttributeValue(element, kAXTitleAttribute as CFString, &titleRef)
         let title = titleRef as? String ?? ""
@@ -182,7 +223,6 @@ nonisolated final class DockWatcher: @unchecked Sendable {
             }
         }
 
-        let frame = CGRect(origin: position, size: size)
         return DockItem(frame: frame, title: title, bundleIdentifier: bundleIdentifier, url: url, subrole: subrole)
     }
 }

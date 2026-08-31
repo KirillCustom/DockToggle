@@ -251,12 +251,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
 
     // MARK: - EventTapDelegate
 
-    /// Fast check — rect matching against the cached Dock frames and a process lookup.
-    /// Runs inside the event tap callback and must return quickly.
+    /// Fast check — no Accessibility IPC, only cheap system calls and a cached list. Runs
+    /// inside the event tap callback and must return quickly.
+    ///
+    /// The window-server gates run first: they reject the vast majority of clicks (anywhere
+    /// not near the Dock) before touching the cached item list, and they catch the case a
+    /// frame check alone would miss — a window or panel drawn over the Dock's strip.
     nonisolated func eventTapResolveClick(at point: CGPoint) -> ClickTarget? {
-        guard Preferences.shared.isEnabled else { return nil }
+        guard Preferences.shared.isEnabled,
+              DockScreenGate.containsDockStrip(point),
+              DockScreenGate.dockOwnsPoint(point) else { return nil }
 
-        for item in DockWatcher.shared.dockItems where item.frame.contains(point) {
+        let horizontal = DockWatcher.shared.orientation == .horizontal
+        for item in DockWatcher.shared.dockItems
+        where DockGeometry.longAxisContains(point, itemFrame: item.frame, horizontal: horizontal) {
             return clickTarget(for: item)
         }
 
@@ -293,6 +301,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
             print("[EventTap] Fullscreen, leaving the click to the Dock")
             #endif
             return false
+        }
+
+        guard !DockClickDebounce.shared.shouldSwallow(pid: app.processIdentifier) else {
+            #if DEBUG
+            print("[EventTap] Within the double-click gap, swallowing without toggling again")
+            #endif
+            return true
         }
 
         #if DEBUG
