@@ -14,6 +14,13 @@ nonisolated enum WindowToggler {
             return false
         }
 
+        if Preferences.shared.cycleWindowsEnabled, !isFullscreen(app: app) {
+            let windows = getWindows(AXUIElementCreateApplication(app.processIdentifier)).filter { !isMinimized($0) }
+            if windows.count > 1 {
+                return cycleWindows(pid: app.processIdentifier, windows: windows)
+            }
+        }
+
         switch mode {
         case .minimize:
             return toggleMinimize(app: app)
@@ -50,12 +57,7 @@ nonisolated enum WindowToggler {
         #if DEBUG
         print("[WindowToggler] Minimizing \(visibleWindows.count) visible windows")
         #endif
-        for window in visibleWindows {
-            let result = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, true as CFTypeRef)
-            #if DEBUG
-            print("[WindowToggler]   minimize result: \(result.rawValue)")
-            #endif
-        }
+        MinimizeCoordinator.shared.minimizeAll(pid: app.processIdentifier, windows: visibleWindows)
         return true
     }
 
@@ -79,8 +81,38 @@ nonisolated enum WindowToggler {
         #if DEBUG
         print("[WindowToggler] Minimizing focused window")
         #endif
-        AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, true as CFTypeRef)
+        MinimizeCoordinator.shared.minimizeAll(pid: app.processIdentifier, windows: [window])
         return true
+    }
+
+    /// Raises the app's rearmost unminimized window, mimicking ⌘` (Command-Tilde). The
+    /// rearmost window comes from the window server's real z-order, not the AX windows
+    /// array — that array keeps the focused window first, so "advance from the focused one"
+    /// would just flip between the two frontmost windows and never visit the rest.
+    private static func cycleWindows(pid: pid_t, windows: [AXUIElement]) -> Bool {
+        guard windows.count > 1 else { return false }
+        let rearWindow = rearmostByZOrder(pid: pid, windows: windows) ?? windows[windows.count - 1]
+        AXUIElementPerformAction(rearWindow, kAXRaiseAction as CFString)
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetAttributeValue(app, kAXFocusedWindowAttribute as CFString, rearWindow)
+        return true
+    }
+
+    /// The candidate that sits deepest in the window server's front-to-back on-screen list.
+    /// Windows on other Spaces are excluded from that list, which is wanted: cycling from
+    /// the Dock must not yank the user across Spaces.
+    private static func rearmostByZOrder(pid: pid_t, windows: [AXUIElement]) -> AXUIElement? {
+        let orderedIDs = OnScreenWindows.ids(forPID: pid)
+        guard orderedIDs.count > 1 else { return nil }
+        var rear: (window: AXUIElement, depth: Int)?
+        for window in windows {
+            guard let id = AXWindowResolver.windowID(for: window),
+                  let depth = orderedIDs.firstIndex(of: id) else { continue }
+            if rear == nil || depth > rear!.depth {
+                rear = (window, depth)
+            }
+        }
+        return rear?.window
     }
 
     private static func toggleHide(app: NSRunningApplication) -> Bool {
@@ -109,14 +141,7 @@ nonisolated enum WindowToggler {
 
         guard !minimized.isEmpty else { return false }
 
-        for window in minimized {
-            let result = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, false as CFTypeRef)
-            #if DEBUG
-            print("[WindowToggler]   restore result: \(result.rawValue)")
-            #endif
-        }
-
-        app.activate()
+        MinimizeCoordinator.shared.restore(pid: app.processIdentifier, windows: minimized, app: app)
         return true
     }
 

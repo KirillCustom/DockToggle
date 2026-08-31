@@ -64,6 +64,7 @@ struct GeneralSettingsView: View {
     var updater: SPUUpdater? = nil
     @AppStorage("isEnabled") private var isEnabled = true
     @AppStorage("toggleMode") private var toggleMode = ToggleMode.minimize.rawValue
+    @AppStorage("cycleWindowsEnabled") private var cycleWindowsEnabled = false
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @State private var automaticallyChecks = true
     @State private var loginItemError: String?
@@ -79,6 +80,12 @@ struct GeneralSettingsView: View {
                     Text("Minimize windows").tag(ToggleMode.minimize.rawValue)
                     Text("Minimize active window").tag(ToggleMode.minimizeActive.rawValue)
                     Text("Hide application").tag(ToggleMode.hide.rawValue)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Toggle("Cycle windows when already active", isOn: $cycleWindowsEnabled)
+                    Text("Clicking an already-active app with more than one window switches between them instead of the toggle mode above.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, newValue in

@@ -13,7 +13,8 @@
 
 - **Dock click toggle** — clicking an active app's Dock icon minimizes (or hides) its windows; clicking again restores them
 - **Three toggle modes** — "Minimize windows" (all), "Minimize active window" (focused only), or "Hide application" (whole-app)
-- **Auto-restore** — clicking an inactive app with minimized windows automatically restores them
+- **Cycle windows** — optionally, clicking an already-active app with more than one window switches between them instead
+- **Auto-restore** — clicking an inactive app with minimized windows automatically restores them, in the order they were last seen
 - **Auto-update** — built-in update checks via Sparkle
 - **Excluded apps** — per-app opt-out with a searchable picker
 - **Fullscreen safety** — never intercepts clicks on fullscreen apps

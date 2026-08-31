@@ -174,6 +174,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Even
         isTogglingRequested = false
         eventTapManager.stop()
         dockWatcher.stop()
+        MinimizeCoordinator.shared.reset()
     }
 
     // MARK: - Windows

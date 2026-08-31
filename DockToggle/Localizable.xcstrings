@@ -297,6 +297,26 @@
         }
       }
     },
+    "Cycle windows when already active" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключать окна, если приложение уже активно"
+          }
+        }
+      }
+    },
+    "Clicking an already-active app with more than one window switches between them instead of the toggle mode above." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Клик по уже активному приложению с несколькими окнами переключает между ними вместо режима, выбранного выше."
+          }
+        }
+      }
+    },
     "No apps found" : {
       "localizations" : {
         "ru" : {

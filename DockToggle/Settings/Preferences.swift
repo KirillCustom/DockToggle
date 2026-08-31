@@ -38,6 +38,15 @@ nonisolated final class Preferences: Sendable {
         set { UserDefaults.standard.set(newValue, forKey: "excludedBundleIds") }
     }
 
+    /// When the frontmost app already has more than one visible window, a click cycles
+    /// focus through them (like ⌘`) instead of running the selected toggle mode. Independent
+    /// of `toggleMode`: it only pre-empts a click that would otherwise minimize or hide an
+    /// app that still has other windows to show first.
+    var cycleWindowsEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: "cycleWindowsEnabled") }
+        set { UserDefaults.standard.set(newValue, forKey: "cycleWindowsEnabled") }
+    }
+
     private init() {
         if UserDefaults.standard.object(forKey: "isEnabled") == nil {
             UserDefaults.standard.set(true, forKey: "isEnabled")

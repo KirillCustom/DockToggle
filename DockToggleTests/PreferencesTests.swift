@@ -99,6 +99,23 @@ struct PreferencesTests {
         prefs.isEnabled = true
         #expect(prefs.isEnabled)
     }
+
+    // MARK: - cycleWindowsEnabled
+
+    @Test("cycleWindowsEnabled defaults to false")
+    func cycleWindowsEnabledDefault() {
+        UserDefaults.standard.removeObject(forKey: "cycleWindowsEnabled")
+        #expect(!prefs.cycleWindowsEnabled)
+    }
+
+    @Test("cycleWindowsEnabled persists value")
+    func cycleWindowsEnabledPersistence() {
+        prefs.cycleWindowsEnabled = true
+        #expect(prefs.cycleWindowsEnabled)
+
+        prefs.cycleWindowsEnabled = false
+        #expect(!prefs.cycleWindowsEnabled)
+    }
 }
 
 // MARK: - ToggleMode
